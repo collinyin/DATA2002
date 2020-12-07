@@ -1,0 +1,103 @@
+---
+title: "lab3b_2.2"
+output: html_document
+---
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+# long format
+tablet = read_tsv("https://raw.githubusercontent.com/DATA2002/data/master/tablet1.txt")
+
+# wide format
+tabdat = gather(tablet, key = "lab", value = "measurement")
+
+tabdat %>% 
+  ggplot() + 
+  aes(x = lab, y = measurement, fill = lab) + 
+  geom_boxplot() + 
+  theme_classic() + 
+  labs(y = "Chlorpheniramine maleate (mg)",
+       x = "Lab", fill = "")
+```
+*Figure 1: Boxplots of determinations of amounts of chlorpheniramine maleate in tablets by seven laboratories.*
+
+**The boxplots in Figure 1 show some differences in the medians. Are these differences significant? We can address this by asking a variety of questions.**
+
+## Question 1. 
+**Is the mean level of chlorpheniramine maleate in tablets from Lab 1 different from 4.0? State the null hypothesis.**
+
+We use a one sample t-test.
+$H_0: \mu_i=4$ vs. $H_1:\mu_1\neq4$
+```{r}
+t.test(tablet$Lab1, mu = 4)
+```
+Therefore, the mean level in Lab 1 is different to 4.
+
+## Question 2.
+**Is the mean level of chlorpheniramine maleate in tablets from Lab 1 different from that from Lab 3?**
+
+Here we use a two sample t-test.
+$H_0:\mu_1=u_3$ vs. $H_1:\mu_1\neq \mu_3$
+```{r}
+t.test(tablet$Lab1, tablet$Lab3)
+```
+Here we can see that the means of Lab1 and Lab3 results are different. 
+
+## Question 3.
+**Perform a one-way ANOVA to test if the mean levels of chlorpheniramine maleate differ across the seven labs.**
+
+```{r}
+lab_anova = aov(measurement ~ lab, data = tabdat)
+summary(lab_anova)
+```
+$F = 5.66\mbox{, df}=6,63\mbox{, }p<0.0001$
+
+Here we can see that the p-value is << 0.05 therefore, we can conclude that there must be at least 2 groups that differ in means.
+
+## Question 4.
+**Obtain a QQ plot of the residuals and comment on the validity of the ANOVA assumptions.**
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(ggfortify)
+autoplot(lab_anova, which = c(1,2)) + theme_classic()
+```
+
+On the left plot we can see that the blue line isn't close to 0 therefore, the middle groups don't have much equal variance.
+
+And on the right plot we can assume normality because most of the points lie on the QQ line, however, there are a few towards the low end that deviates from this line. Furthermore, we can rely on the central limit theorem to ensure our inferences are valid.
+
+
+## Question 5.
+**Perform pairwise post hoc tests to determine which labs are significantly different.**
+
+To do this we can once again use the emmeans package.
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(emmeans)
+lab_em = emmeans(lab_anova, ~ lab)
+lab_pair = contrast(lab_em, method = "pairwise", adjust = "bonferroni")
+# lab_pair
+
+# filter out all lab pairs which have a p.value of less than 0.1 and tabulate
+lab_pair %>%
+  data.frame() %>% 
+  filter(p.value < 0.05) %>% 
+  knitr::kable(digits = 4)
+```
+Here we have filtered out all the significant contrasts and tabulated them above. Furthermore, all the pairwise mean differences are plotted.
+```{r, echo = FALSE}
+plot(lab_pair) + theme_bw() +
+  labs(x = "Pairwise mean difference") + 
+  geom_vline(xintercept = 0)
+```
+We can conclude that Lab1 is significantly different to Labs 4,5 and 6.
+
+## Question 6.
+**Use a rank based approach to testing for a difference between the means of the 7 labs.**
+
+```{r}
+kruskal.test(measurement ~ factor(lab), data = tabdat)
+```
+$\chi^2=29.6 \mbox{, df}=6\mbox{, }p<0.001$
+
+Therefore, the Kruskal-Wallis test shows that there is significance difference between the means of the 7 labs.

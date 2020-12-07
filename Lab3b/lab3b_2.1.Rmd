@@ -1,0 +1,121 @@
+---
+title: "lab3b_2.1"
+output: html_document
+---
+
+## 0. HairColour vs. Pain 
+### 0.1 Boxplot
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(tidyverse)
+pain = read_tsv("https://raw.githubusercontent.com/DATA2002/data/master/blonds.txt")
+# glimpse(pain)
+
+pain = pain %>% mutate(HairColour = factor(HairColour, levels = c("LightBlond", 
+    "DarkBlond", "LightBrunette", "DarkBrunette")))
+# levels(pain$HairColour)
+
+ggplot(pain, aes(x = HairColour, y = Pain, colour = HairColour)) + 
+  geom_boxplot() + theme_classic()
+```
+
+### 0.2 ANOVA
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+pain_aov = aov(Pain ~ HairColour, data = pain)
+summary(pain_aov)
+```
+
+## Question 1.
+**Compute the standard error of each pairwise difference (note, there are only two different standard errors over the 4C2=6 pairwise differences).**
+
+The residual standard error is given below
+```{r, echo = FALSE}
+sig_hat = sqrt(66.8)
+sig_hat
+```
+
+These different standard errors come from the difference in number of observations per group. We have 1 group of size 4 and 3 groups of size 5.
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+pain_sum = pain %>% group_by(HairColour) %>% summarise(n = n(), ybar = mean(Pain))
+pain_sum
+ni = pain_sum %>% pull(n)
+ybar_i = pain_sum %>% pull(ybar)
+```
+
+When both sample sizes are 5, the standard error is
+```{r, echo = FALSE}
+se_55 = sig_hat * sqrt(1/5 + 1/5)
+se_55
+```
+
+When one sample is 4 and the other sample is 5, the standard error is
+```{r, echo = FALSE}
+se_45 = sig_hat * sqrt(1/4 + 1/5)
+se_45
+```
+
+
+## Question 2.
+**Compute t-statistics for all 6 pairwise comparisons.**
+
+```{r, echo = FALSE}
+diff_mat = outer(ybar_i, ybar_i, "-")
+diff_mat
+```
+
+We obtain a matrix of residual standard errors using the outer() function.
+
+```{r, echo = FALSE}
+se_matrix = sig_hat * sqrt(outer(1/ni, 1/ni, "+"))
+se_matrix
+```
+
+The t-statistics are given by the "ratio" of the difference matrix and the standard error matrix.
+
+```{r, echo = FALSE}
+diff_mat/se_matrix
+```
+
+## Question 3.
+**Using the output below and the Bonferroni method, determine the appropriate multiplier for constructing 6 simultaneous confidence intervals at both the 95% and 99% confidence levels.**
+
+```{r, echo = FALSE}
+upper.tail.area = c(0.05, 0.025, 0.05/6, 0.025/6, 0.01, 0.005, 0.01/6, 
+    0.005/6)
+t.quantile = qt(1 - upper.tail.area, df = 15)
+cbind(upper.tail.area, t.quantile)
+```
+For 95% intervals
+```{r, echo = FALSE}
+m = qt(1-0.025/6, df = 15)
+m
+```
+
+For 99% intervals
+```{r, echo = FALSE}
+m = qt(1-0.005/6, df = 15)
+m
+```
+
+## Question 4.
+**Which differences are significant at the 5% level**
+
+In the t-statistics matrix we can see that LightBlond(1)-LightBrunette(3) and LightBlond(1)-DarkBrunette(4) have higher t-statistics than at the 5% level. Therefore, these two interaction groups are significant.
+
+**Which differences are significant at the 1% level**
+
+Only LightBlond(1)-DarkBrunette(4) are significant at the 1% level because it is the only interaction with a larger t-statistics than the 1% level of significance. 
+
+
+## Question 5.
+**Check your answers using the emmeans package. Do your conclusions change if you use Tukey’s or Scheffe’s method?**
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(emmeans)
+pain_em = emmeans(pain_aov, ~HairColour)
+bonf = contrast(pain_em, method = "pairwise", adjust = "bonferroni")
+plot(bonf) + theme_bw() + geom_vline(xintercept = 0)
+
+```
+
+No, they also don't change with Tukey's and Scheffes.
