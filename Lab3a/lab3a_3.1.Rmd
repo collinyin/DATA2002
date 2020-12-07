@@ -1,0 +1,8 @@
+---
+title: "lab3a_3.1"
+output: html_document
+---
+
+```{r}
+
+```
