@@ -3,6 +3,51 @@ title: "lab3a_3.1"
 output: html_document
 ---
 
-```{r}
-
+## Imported Data
+```{r import data, echo = FALSE, message = FALSE, warning = FALSE}
+library(tidyverse)
+flicker = read_tsv("https://raw.githubusercontent.com/DATA2002/data/master/flicker.txt")
+glimpse(flicker)
 ```
+
+
+## (a)
+**Generate side by side boxplots as well as normal QQ plots for the flicker data. Do your plots support the assumptions required for an ANOVA test to be valid? Explain.**
+
+```{r, echo = FALSE}
+library(ggplot2)
+p1 = ggplot(flicker, aes(y = Flicker, x = Colour, colour = Colour)) +
+  geom_boxplot() + geom_jitter(width = 0.1, size = 1.5)
+
+p2 = ggplot(flicker, aes(sample = Flicker)) + 
+  geom_qq() + geom_qq_line() + facet_wrap(~ Colour) + theme_classic(base_size = 8)
+
+gridExtra::grid.arrange(p1, p2, ncol = 2)
+```
+
+By looking at the boxplots we can see that the variance for all factors seem reasonably equal. Furthermore, all the residuals on the QQ plot seem close enough to the QQ line. Therefore, we assume the assumptions hold.
+
+## (b)
+**Use the aov() function to perform an ANOVA test for the equality of means flicker level across each of the three eye colours.**
+
+```{r}
+flicker_anova = aov(Flicker~Colour,
+                    data = flicker)
+summary(flicker_anova)
+```
+
+## (c)
+**Using the output, write out the hypothesis test in full. Be sure to state the null and alternative hypothesis, assumptions, test statistic (with distribution), observed test statistic, p-value and an appropriate conclusion.**
+
+- **Hypothesis:** $H_0:\mu_1=\mu_2=\mu_3$ vs. $H_1:\mu_i\neq\mu_j$
+- **Assumptions:** All $g$ populations have **equal variance** and are **normally distributed**
+- **Test Statistic:** $T=\frac{\mbox{Treatment Mean Sqaured}}{\mbox{Residual Mean Squared}}$. Under $H_0$, $T\sim F_{g-1, N-g}$.
+- **Observed test statistic:** $t_0 = 4.8$
+- **p-value:** $P(T\geq t_0)=P(F_{g-1,N-g}\geq t_0)=P(F_{2,16}\geq t_0)=0.023$. *Note: Always looking at upper tail*
+
+The p_value shown from the ANOVA (0.023) has less than a 5% level of significance therefore, we reject the null hypothesis (i.e. there is a difference in means across at least two factors).
+
+
+
+
+

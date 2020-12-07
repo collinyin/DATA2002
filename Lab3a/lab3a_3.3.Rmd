@@ -1,0 +1,88 @@
+---
+title: "lab3a_3.3"
+output: html_document
+---
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(sgof)
+library(tidyverse)
+```
+
+## (a)
+**How many p-values are in the data set?**
+
+```{r, echo = FALSE}
+nrow(Hedenfalk)
+```
+Each entry in this data frame is a p-value.
+
+## (b)
+**Generate a histogram of the (unadjusted) Hedenfalk p-values.**
+
+```{r, warning = FALSE, echo = FALSE}
+ggplot(Hedenfalk, aes(x = x)) + geom_histogram(boundary = 0, binwidth = 0.05) + 
+  labs(x = "Unadjusted p-value", y = "Count") + theme_bw()
+```
+
+## (c)
+**How many (unadjusted) p-values are significant at the 5% level of significance? What proportion of all p-values in the data set is this?**
+
+```{r, echo = FALSE}
+num_significant = sum(Hedenfalk$x < 0.05)
+proportion = num_significant/nrow(Hedenfalk)
+proportion
+# or we can use the mean
+# mean(Hedenfalk$x < 0.05)
+```
+## (d)
+**Why is it a good idea to consider adjusted p-values?**
+
+By chance alone we should see $3170 \times 0.05=158.8$ false positives however, here we have 605 false positives therefore, to make sure our result is correct, it is a good idea to consider adjustments because the FWER grows as the number of comparisons get larger.
+
+## (e)
+**Using p.adjust() find the Bonferroni and BH p-values. Plot histograms of each and find the number of significant results after adjustment for both.**
+
+```{r, warning = FALSE, echo = FALSE}
+Hedenfalk = Hedenfalk %>% 
+  mutate(
+    bonf_p = p.adjust(x, method = "bonferroni"),
+    BH_p = p.adjust(x, method = "BH")
+)
+
+# log transformation performed because the scaling was bad
+p1 = ggplot(Hedenfalk, aes(x = bonf_p)) + 
+  geom_histogram(boundary = 0, binwidth = 0.05) +
+  theme_bw() + 
+  labs(x = "bonferroni adjusted p-value", y = "Count") +
+  scale_y_log10()
+
+p2 = ggplot(Hedenfalk, aes(BH_p)) +
+  geom_histogram(boundary = 0, binwidth = 0.05) +
+  theme_bw()
+
+gridExtra::grid.arrange(p1, p2, ncol = 2)
+```
+
+Number of significant p-values and proportion for the Bonferroni method
+```{r, echo = FALSE}
+# number of significant for bonferroni
+sum(Hedenfalk$bonf_p < 0.05)
+mean(Hedenfalk$bonf_p < 0.05) # proportion
+```
+
+
+Number of significant p-values and proportion for the BH method
+```{r, echo = FALSE}
+# number of significant for BH
+sum(Hedenfalk$BH_p < 0.05)
+mean(Hedenfalk$BH_p < 0.05) # proportion
+```
+
+## (f)
+**Comment on the difference between the Bonferroni method and the BH method.**
+
+Bonferroni method is more conservative and controls the FWER whereas the BH method allows for more false positives and controls the FDR.
+
+
+
+

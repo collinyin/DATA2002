@@ -1,0 +1,38 @@
+---
+title: "lab3a_1&2"
+output: html_document
+---
+
+## Question 1.1
+I generate 4 samples of size $n=20$ from a $N(3,1)$ distribution and for each of these 4 samples, I test the null hypothesis $H_0:\mu=3$ against the alternative $H_1:\mu\neq3$ using $\alpha=0.1$ as my level of significance.
+
+What’s the probability that I falsely reject **at least one** of the four null hypotheses?
+
+**ANSWER:** $1-(1-\alpha)^m=1-0.9^4=$
+
+```{r, echo = FALSE}
+ans = 1-0.9^4
+ans
+```
+
+*Questions 1.2 and 1.3 are easy*
+
+## Question 1.4
+
+- A 1-sample t-test is to compare the mean of a population to a desired value
+- A 2-sample t-test is to compare the mean of two populations
+- A paired t-test is to compare the mean of two populations that have paired observations
+- ANOVA is used when the means of categories want to be compared
+  - $T\sim F_{g-1,N-g}$
+  - A p-value of **< 0.05** means that there are at least 2 factors of the variable which are different
+  
+  
+## Question 2
+
+- ANOVA Table
+  - d_t = g-1
+  - d_r = N-g
+  - s_t + s_r = s_total
+  - mean_sq_t = s_t/d_t
+  - mean_sq_r = s_r/d_r
+  - f-statistic = mean_sq_t/mean_sq_r

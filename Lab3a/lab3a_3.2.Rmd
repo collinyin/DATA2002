@@ -1,0 +1,58 @@
+---
+title: "lab3a_3.2"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## Import Data
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+pain = read_tsv("https://raw.githubusercontent.com/DATA2002/data/master/blonds.txt")
+glimpse(pain)
+```
+
+## Question 1.
+
+Change HairColour so that the ordering is preserved from lightest to darkest. Hint use: factor()
+
+```{r, echo = FALSE}
+pain = pain %>% mutate(HairColour = factor(HairColour, levels = c("LightBlond", 
+                                    "DarkBlond", "LightBrunette", "DarkBrunette")))
+levels(pain$HairColour)
+```
+
+## Question 2.
+
+Generate boxplots and QQ plots to check the ANOVA assumptions.
+
+```{r, echo = FALSE}
+library(ggplot2)
+p1 = ggplot(pain, aes(x = HairColour, y = Pain, colour = HairColour)) + 
+  geom_boxplot() + 
+  geom_jitter(width = 0.1, size = 1.5)
+
+p2 = ggplot(pain, aes(sample = Pain)) + 
+  geom_qq() + geom_qq_line() + facet_wrap(~HairColour) + theme_classic()
+
+gridExtra::grid.arrange(p1, p2, ncol = 2)
+```
+
+The variance doesn't look too equal however, it isn't conclusive because there are so few observations. Furthermore, the QQ plots don't say much either but there isn't strong evidence against the normality assumption therefore, for now we assume it holds.
+
+## Question 3.
+
+From looking at the boxplots it seems as if when the darkness of hair increases the average pain decreases.
+
+## Question 4.
+
+```{r, echo = FALSE}
+pain_anova = aov(Pain~HairColour, data = pain)
+summary(pain_anova)
+```
+
+From the ANOVA we can see that there is at least 2 hair colour groups whose means differ from one another. 
+
+
+
+
