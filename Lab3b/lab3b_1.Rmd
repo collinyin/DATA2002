@@ -1,0 +1,33 @@
+---
+title: "lab3b_1"
+output: html_document
+---
+
+## Recap
+**1.1 Simultaneous Confidence Intervals**
+- Bonferroni Method
+- Tukey's Method
+- Scheffe's Method
+
+**1.2 Multiplicity-adjusted p-values**
+- p-value of a (two-sided) test is greater than \alpha iff the hypothesised value is in the $100(1-\alpha)\%$ confidence interval. 
+
+**1.3 Implementation**
+- Emmeans package provides a convenient way to implement a variety of post hoc tests.
+
+```{r, warning = FALSE}
+library(emmeans)
+# one_way = aov(y ~ group) # y is the variable
+# one_way_em = emmeans(one_way, ~ group)
+# one_way_pairs = contrast(one_way_em, method = "pairwise", adjust = "bonferroni")
+
+# alternatively, can use pairs()
+# one_way_pairs = pairs(one_way_em, adjust = "bonferroni")
+# plot(one_way_pairs)
+
+# Tukey's method
+# contrast(one_way_em, method = "pairwise", adjust = "tukey")
+
+# Scheffe's method:
+# contrast(one_way_em, method = "pairwise", adjust = "scheffe")
+```
