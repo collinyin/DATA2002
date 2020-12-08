@@ -1,0 +1,50 @@
+---
+title: "lab3c_1.3"
+output: html_document
+---
+
+## Hubble Data
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+hubble = read_tsv("https://raw.githubusercontent.com/DATA2002/data/master/Hubble.txt")
+glimpse(hubble)
+```
+
+## Question 1.
+
+**What will be the most effective visualisation to look at this data. Add a line of best fit to your plot. Compare your results to Figure 1 from the PNAS paper (below).**
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+ggplot(hubble, aes(x = distance, y = recession_velocity)) + theme_bw() +
+  geom_point() + geom_smooth(method = "lm", se = FALSE)
+```
+
+## Question 2.
+**Does the regression make sense with the constant term = 0? (if the distance from the earth is zero, is the velocity from the earth 0?) Fit the model allowing for an intercept and test the null hypothesis that the intercept is equal to zero. Fit another regression that does not allow an intercept and write down your estimate for Hubble’s constant. You can force the regression line to have a zero intercept by putting a -1 in the model formula, e.g. lm(y ~ x - 1)**
+
+```{r, echo = FALSE}
+hfit1 = lm(recession_velocity ~ distance, data = hubble)
+summary(hfit1)
+```
+
+- $H_0: \beta_0 = 0$ vs. $H_1: \beta_0 \neq 0$
+- Assumption: The residuals are iid $N(0,\sigma^2)$ and there is a linear relationship between y and x
+- Observed test statistic: $t_0 = -0.489$
+- p_value $= 2P(t_{n-2}\geq |t_0|) = 2P(t_{n22}\geq 0.489) = 0.63$
+- Conclusion: We do not reject $H_0$, therefore, the intercept is not far from 0.
+
+We can also force the intercept to be at 0. We do this because it is dicated by underlying physics that the model is trying to describe.
+
+```{r, echo = FALSE}
+hfit2 = lm(recession_velocity ~ distance - 1, data = hubble)
+summary(hfit2)
+```
+## Question 3.
+**Generate plots to check for equal variance and the normality of the residuals.**
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(ggfortify)
+autoplot(hfit1, which = 1:2) + theme_bw()
+```
+
+From above we can see that there is no evident pattern in the residual vs. fitted plot therefore, the homoskedasticity assumption must hold. Furthermore, most of the points on the QQ plot are close to the diagonal line therefore, the normality assumption also holds. Moreover, the central limit theorem supports this as there are many observations.

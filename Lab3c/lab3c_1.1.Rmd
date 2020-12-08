@@ -1,0 +1,110 @@
+---
+title: "lab3c_1.1"
+output: html_document
+---
+
+## Poison Data
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(tidyverse)
+poison_data = read_csv("https://raw.githubusercontent.com/DATA2002/data/master/box_cox_survival.csv")
+poison_data = poison_data %>% mutate(inv_survival = 1/y)  # create the reciprocal survival time variable
+glimpse(poison_data)
+```
+
+## Question 1.
+**Generate summary statistics for each of the treatment combination (including mean, median, standard deviation, interquartile range, sample size). Make sure you don’t report too many decimal places in your summary statistics.**
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(dplyr)
+library(knitr)
+poison_summary = poison_data %>% 
+  group_by(poison, antidote) %>% 
+  summarise(
+    mean = mean(inv_survival),
+    median = median(inv_survival),
+    sd = sd(inv_survival),
+    iqr = IQR(inv_survival),
+    n = n()
+  )
+  
+poison_summary %>% kable(digits = 2)
+```
+
+## Question 2.
+**How many replicates are there in each treatment combination?**
+
+The sample size for each treatment combination is 4 therefore, there are 4 replicates.
+
+## Question 3.
+**Visualise the data using boxplots. Which poison tended to have the lowest survival time (highest reciprocal survival time)?**
+```{r, echo = FALSE}
+ggplot(poison_data, aes(x = poison, y = inv_survival, colour = antidote)) + 
+  geom_boxplot() + 
+  theme_bw() +
+  facet_wrap(~ antidote, ncol = 4) + 
+  labs(y = "1/Survival", x = "Poison", colour = "Antidote")
+```
+From the boxplots above it seems as if poison III has the lowest median survival time because the y-scale has been transformed to the reciprocal of survival time.
+
+## Question 4.
+**Write an appropriate model formula for a two-way ANOVA with interactions.**
+
+$Y_{ij}=\mu + \alpha_i + \gamma_j + (\alpha\gamma)_{ij} + \epsilon_{ijk}$
+
+where $\mu$ is the overall mean, $\alpha_i \mbox{ and } \gamma_j$ are the treatment effects (differences between the group means and overall means), $(\alpha\gamma)_{ij}$ are the interaction effects and $\epsilon_{ijk} \sim N(0, \sigma^2)$. 
+
+The following constraints are also required:
+
+- $\sum\limits_i\alpha_i=0$
+- $\sum\limits_j\gamma_j=0$
+- For each j, $\sum\limits_i(\alpha\gamma)_{ij}=0$
+- For each i, $\sum\limits_j(\alpha\gamma)_{ij}=0$
+
+## Question 5.
+**Use R to fit the ANOVA model described above and generate an ANOVA table.**
+
+```{r, echo = FALSE}
+poison_anova = aov(inv_survival ~ poison + antidote + (poison:antidote), data = poison_data)
+summary(poison_anova)
+```
+## Question 6.
+**Can the interaction effect be dropped from the model? Why or why not?**
+
+Yes, the interaction can be dropped because the p-value shows that there is no difference in the means.
+
+## Question 7.
+**Test for a poison treatment effect.**
+
+We have found that the interaction term is not significant and can be dropped. Therefore, we only need to consider p-values associated with poison and antidote. Although the interaction term can be dropped, we will conduct inferences with the "full" model because we have hypothesised that there exists an interaction and it is safer to do so.
+
+We let $\alpha_1, \alpha_2, \alpha_3$ be the treatment effects for the three levels of poison. 
+
+- Hypothesis: $H_0: \alpha_1=\alpha_2=\alpha_3 \mbox{ vs. } H_1: \mbox{not all } \alpha_j \mbox{ equals 0}$ 
+- Assumptions: ...
+- Test statistic: $T = \frac{\mbox{poison mean square}}{\mbox{residual mean square}}\sim F_{a-1, ab((n-1))}$
+- Observed test statistic: $t_0=72.64$
+- p-value: $P(F_{2,36},72.64)<0.001$
+- Conclusion: We reject $H_0$ therefore, there must be differences in the poison treatments (i.e. there is significant difference in the (reciprocal) survival times between the three poisons). 
+
+## Question 8.
+**Generate an interaction plot and comment on what you see. Do your observations agree with the results from the ANOVA table? [Hint: you can the emmip() function from the emmeans package OR use ggplot to plot the treatment combination means directly.]**
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(emmeans)
+emmip(poison_anova, antidote ~ poison) + theme_bw()
+```
+
+Here we can see that the lines are near parallel to each other therefore, there is no interaction between poisons and antidotes which also supports our findings above. 
+
+## Question 9.
+
+**What are the assumptions required for the ANOVA test to be valid? Generate appropriate diagnostic plots. Comment as to whether or not the assumptions are satisfied with reference to the diagnostic plots?**
+
+There are two assumptions that should be met, these are; equal variance and normality.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(ggfortify)
+autoplot(poison_anova, which = 1:2) + theme_bw()
+```
+
+We can see from the residuals vs. fitted plot that the assumption of equal variance is satisfied. Furthermore, the normality assumption is also satisfied as most of the points lie on the QQ line and we can also rely on the central limit theorem as there are many observations.
