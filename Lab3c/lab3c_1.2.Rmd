@@ -1,0 +1,104 @@
+---
+title: "lab3c_1.2"
+output: html_document
+---
+
+## Manufacturing Data
+This data represents the number of unit produced by 4 different machines (A,B,C,D) per day for 5 days. We can compare the production levels of the machines and consider the days as blocks.
+
+```{r, warning = FALSE, echo = FALSE, message = FALSE}
+library(tidyverse)
+manufacturing = read_csv("https://raw.githubusercontent.com/DATA2002/data/master/manufacturing.csv")
+manufacturing
+knitr::kable(manufacturing)
+```
+
+## Question 1.
+**Convert the data from its current “wide” format to “long” format.**
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+manufacturing_wide = manufacturing %>% 
+  gather(key = "machine",
+         value = "units",
+         A:D) %>% 
+  mutate(day = factor(Day, levels = c("Mon", "Tue", "Wed", "Thu", 
+        "Fri")))
+glimpse(manufacturing_wide)
+```
+
+## Question 2.
+**Summarise and visualise the data. What do you notice?**
+
+***Note:** When it says "Summarise" we are supposed to get the mean, median, sd, IQR and sample size.*
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+ggplot(manufacturing_wide, aes(x = machine, y = units, colour = day)) + 
+  geom_point(size = 2) + theme_bw()
+
+manufacturing_wide %>% 
+  group_by(day) %>% 
+  dplyr::summarise(mean = mean(units), median = median(units), sd = sd(units), iqr = IQR(units), n = n()) %>% knitr::kable()
+```
+We can see that it seems as if Machine A produces less than the other 3.
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+ggplot(manufacturing_wide, aes(x = day, y = units, colour = machine)) + 
+  geom_point(size = 2) + theme_bw()
+
+manufacturing_wide %>% 
+  group_by(machine) %>% 
+  dplyr::summarise(mean = mean(units), median = median(units), sd = sd(units), iqr = IQR(units), n = n()) %>% knitr::kable()
+```
+
+Furthermore, it seems as if machine A produces significantly less than the other 3 machines and there doesn't seem to have any obvious pattern distinguishing the other 3. We can also see that it seems as if Monday and Friday are outputting less than the other days.
+
+## Question 3.
+**How many observations do we have in each treatment group?**
+
+Treatment group are the machines and the blocks are the days. Therefore, each treatment group has $n=5$ observations; one for each day.
+
+## Question 4.
+**Write an appropriate model formula for a two-way ANOVA with blocks.**
+
+$Y_{ij} = \mu + \alpha_i + \beta_j + \epsilon_{ij}$
+
+where $\mu$ is the overall mean, $\alpha_i$ are the treatment effects for machine $i$, $\beta_j$ are the block effects for day $j$ and $\epsilon_{ij}$ are iid and $\sim N(0,\sigma^2)$. With the following constraints:
+
+- $\sum\limits_i\alpha_i=0$
+- $\sum\limits_j\beta_j=0$
+
+## Question 5.
+**Test if there is a machine effect.**
+
+```{r, echo = FALSE}
+machine_anova = aov(units ~ machine + day, data = manufacturing_wide)
+summary(machine_anova)
+```
+
+Here we can see that it seems that there is no machine effect as the p-value $< 0.001$.
+
+## Question 6.
+**Check and comment on the ANOVA assumptions.**
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE}
+library(ggfortify)
+autoplot(machine_anova, which = 1:2) + theme_bw()
+```
+
+In the left plot, we can see that there is no evident pattern therefore, the assumption of common variance seem like it holds, furthermore, the points on the QQ plot doesn't deviate far from the QQ line therefore, there is no evidence against normality either.
+
+## Question 7.
+**Perform post hoc tests to see which pairs of machines have significantly different means.**
+
+```{r, warning = FALSE, echo = FALSE, message = FALSE}
+library(emmeans)
+# emmip(machine_anova, day ~ machine) + theme_classic()
+
+m_emm = contrast(emmeans(machine_anova, ~machine), method = "pairwise", adjust = "bonferroni")
+m_emm
+plot(m_emm) + geom_vline(xintercept = 0)
+```
+Here we can see that A-B, A-C and A-D have difference medians, which basically supports our initial hypothesis, where machine A produces significantly less than B,C and D. 
+
+***Note:** Since we used days as block effects we do not consider whether days are significant, however it has played an important role in reducing the residual mean square and has improved the test.*
+
