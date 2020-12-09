@@ -1,0 +1,87 @@
+---
+title: "lab4a_1.2"
+output: html_document
+---
+
+## Diabetes Data
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(tidyverse)
+data("diabetes", package = "mplot")
+glimpse(diabetes)  # glimpse the structure of the diabetes
+# pairs(diabetes)  # traditional pairs plot
+# GGally::ggpairs(diabetes)  # ggplotified pairs plot
+# boxplot(diabetes)  # always a good idea to check for gross outliers
+# boxplot(scale(diabetes))  # always a good idea to check for gross outliers
+
+M0 = lm(y ~ 1, data = diabetes)  # Null model
+M1 = lm(y ~ ., data = diabetes)  # Full model
+
+# stargazer::stargazer(M0, M1, type = 'latex', header = FALSE)
+# stargazer::stargazer(M0, M1, type = "html")
+```
+
+## Question 1.
+
+**Try doing backward selection using AIC first.**
+
+```{r, echo = FALSE}
+stepback_aic = step(M1, direction = "backward", trace = FALSE)
+summary(stepback_aic)
+```
+
+## Question 2.
+
+**Explore the forwards selection technique, which works very similarly to backwards selection, just set direction = "forward" in the step() function. When using direction = "forward" you need to specify a scope parameter: scope = list(lower = M0, upper = M1).**
+
+```{r, echo = FALSE}
+step_forward_aic = step(M0, scope = list(lower = M0, upper = M1), direction = "forward", trace = FALSE)
+summary(step_forward_aic)
+```
+
+## Question 3.
+
+**Try using the add1() and drop1() functions. The general form is add1(fitted.model, test = "F", scope = M1) or drop1(fitted.model, test = "F")**
+
+```{r}
+add1(step_forward_aic, test = "F", scope = M1) # add shows the possible varibles that can be added to the model
+drop1(step_forward_aic, test = "F") # drop shows the possible variables that can be omitted from the model
+```
+
+## Question 4. 
+
+**What if you try backwards selection using an individual p-value approach, i.e. using drop1() from the full model.**
+
+```{r}
+drop1(M1, test = "F")
+M2 = update(M1, . ~ . - age) # age has the highest p-value
+drop1(M2, test = "F")
+M3 = update(M2, . ~ . - hdl) # hdl has the highest p-value
+drop1(M3, test = "F")
+M4 = update(M3, . ~ . - glu) # (same)
+drop1(M4, test = "F")
+M5 = update(M4, . ~ . - tch) # (same)
+drop1(M5, test = "F") # all have less than a 5% level of significance (i.e. change)
+```
+
+## Question 5.
+
+**Are you satisfied with the model you have arrived at? Check the assumptions.**
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(ggfortify)
+autoplot(M5, which = 1:2) + theme_bw()
+```
+
+There is a fanning shape in the residuals (close spread for small fitted values and spread out for large fitted values) therefore, the there is no strong evidence for the homoscedasticity assumption. However, there is strong evidence for the normality assumption.
+
+## Question 6
+
+**Write down your final fitted model and interpret the estimated coefficients.**
+
+```{r, echo = FALSE}
+M5
+```
+
+$\hat{y}=-313.77 - 21.59\times\mbox{sex} + 5.71\times\mbox{bmi} + 1.13\times\mbox{map} - 1.04\times\mbox{tc} + 0.84\times\mbox{ldl} + 73.31\times\mbox{ltg}$
+
+- On average, 1 increase of sex, bmi, map, tc, ldl, ltg results in a $\beta_i$ increase of $y$ (which is the diabetes disease progression)

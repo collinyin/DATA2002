@@ -1,0 +1,117 @@
+---
+title: "lab4a_1.1"
+output: html_document
+---
+
+## Wind Data
+```{r, message = FALSE, echo = FALSE, warning = FALSE}
+library(tidyverse)
+pollut = read_csv("https://raw.githubusercontent.com/DATA2002/data/master/pollut.txt")
+glimpse(pollut)
+```
+
+## Question 1.
+
+**Generate a pairs plot of the data using pairs() or the ggpairs() function from the GGally package.**
+
+```{r, message = FALSE, echo = FALSE, warning = FALSE}
+library(GGally)
+ggpairs(pollut) + theme_bw()
+```
+
+## Question 2.
+
+**Perform a multiple regression of ozone on the other variables using lm().**
+
+```{r, echo = FALSE}
+lm_ozone = lm(O ~ WS + Temp + H + In, pollut)
+summary(lm_ozone)
+```
+
+## Question 3.
+
+**Does it look like any variables can be dropped from the model? If you were doing backwards selection using the drop1() function which would you drop first?**
+
+Yes it seems like some variables can be dropped. By looking at the (larger) p-values it seems like insolation (In) and humidity (H) can be dropped. We would drop insolation first as the p-value is larger showing a high chance of it being 0 (i.e. not as relevant to the model).
+
+**Write down a the workflow for a formal hypothesis test to see if the coefficient for insolation is significantly different to zero.**
+
+- **Hypothesis:** $H_0: \beta_4 = 0$ vs. $H_1: \beta_4 \neq 0$
+- **Assumption:** The residuals $\epsilon_i$ are iid $N(0,\sigma^2)$ and there is a linear relationship between $y$ and $x$
+
+```{r, warning = FALSE, echo = FALSE, message = FALSE}
+library(ggfortify)
+autoplot(lm_ozone, which = 1:2) + theme_bw()
+```
+
+- Assumption Checking:
+  - Linearity: The blue line has no obvious pattern (i.e. no smiley or frowny face)
+  - Homoskedasticity: The the points are evenly spread and there is no fanning out of the points     therefore, the assumption of equal error variance must also hold
+  - Normallity: Most of the points lie near the QQ line with the exception of a few near the        bottom. However, we can also rely on the central limit theorem.
+
+- **Test statistic:** $T=\frac{\hat{\beta_4}}{SE(\hat{\beta_4})}\sim t_{n-p}=t_{25}$
+  - where $p$ is the estimated number of intercepts including the intercept and $n$ is the          sample size
+- **Observed test statistic:** $t_0=\frac{0.02275}{0.05067}=0.449$ (from R output).
+- **p-value:** $2P(T_{25}\geq |0.449|)=0.657$
+- **Conclusion:** The p-value is larger than the 5% level of significance therefore, $H_0$ is no rejected. Thus, there is no evidence for a significant relationship between ozone and insolation. So it is dropped from the full model.
+
+
+## Question 4.
+**Rather than dropping variables using their individual p-values, we can instead consider using an information criterion. Use the step() function to perform selection using the AIC starting from the full model.**
+
+```{r}
+pollut_step = step(lm_ozone)
+pollut_step
+```
+
+The backwards selection has dropped insolation but has kept humidity (H).
+
+## Question 5. 
+
+**Write down the fitted model for the model selected by the step-wise procedure.**
+
+$\hat{Ozone}=-16.6-(0.4462\times\mbox{WS})+(0.6\times\mbox{Temp})+(0.0985\times\mbox{H})$
+
+## Question 6.
+
+**Check the linear regression assumptions for the stepwise model.**
+
+```{r, echo = FALSE}
+autoplot(pollut_step, which = 1:2) + theme_bw()
+```
+
+- The assumptions still hold. 
+  - Linearity: The blue line has no obvious pattern (i.e. no smiley nor frowny face)
+  - Homoskedasticity: The points are evenly spread throughout (i.e. no fanning shape)
+  - Normality: Most of the points lie on the vertical line furthermore, relying on the CLT, the     assumption holds
+
+## Question 7.
+
+**What proportion of the variability of ozone is explained by the explanatory variables in the step-wise selected model?**
+
+```{r, echo = FALSE}
+summary(pollut_step)
+```
+
+Looking at the (non adjusted) $R^2$ value, we can see that around 80% of the ozone prediction can be explained by the predictor variables.
+
+## Question 8.
+
+**Use the model to estimate the average ozone for days when WS=40, Temp=80 and H=50. Is a confidence interval or a prediction interval most appropriate here? Write down the interval you think is most appropriate.**
+
+- Confidence interval
+
+```{r, echo = FALSE}
+new_data = data.frame(WS = 40, Temp = 80, H = 50)
+predict(pollut_step, new_data, interval = "confidence")
+```
+
+- Prediction interval
+
+```{r, echo = FALSE}
+predict(pollut_step, new_data, interval = "prediction")
+```
+
+The most appropriate interval would be the confidence interval because the question has asked us to estimate the **AVERAGE** ozone for days. If the question asked us to predict on a specific day then we would use the prediction interval. 
+
+Therefore, our confidence interval would be $(16.71,20.54)$.
