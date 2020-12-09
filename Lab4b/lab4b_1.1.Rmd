@@ -1,0 +1,22 @@
+---
+title: "lab4b_1.1"
+output: html_document
+---
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(tidyverse)
+pima = readr::read_csv("https://raw.githubusercontent.com/DATA2002/data/master/pima.csv")
+glimpse(pima)
+```
+## Question 1.
+
+**Visualise the data and look for any obvious relationships or patterns in the data. Perform any data cleaning as appropriate.**
+
+```{r, warning = FALSE, message = FALSE, echo = FALSE}
+library(GGally)
+ggpairs(pima, aes(alpha = 0.05))
+```
+
+# 1.1.1 Logistic Regression
+## Question 2.
+Fit a logistic regression to the data and perform backward stepwise model selection using the AIC.
