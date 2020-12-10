@@ -1,0 +1,94 @@
+---
+title: "Lab4b_1.1.2"
+output: html_document
+---
+
+# 1.1.2 Random Forest
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+pima = readr::read_csv("https://raw.githubusercontent.com/DATA2002/data/master/pima.csv")
+
+pima_clean = pima %>% 
+  dplyr::mutate(
+    dplyr::across(c(bmi, bp, glu, serum, skin),
+            .fns = ~ dplyr::na_if(., 0))
+  )
+
+pima_red = pima_clean %>% drop_na()
+
+pima_impute = pima %>% 
+  mutate(
+    across(c(bmi, bp, glu, serum, skin),
+            .fns = ~ ifelse(. == 0, mean(., na.rm= TRUE), .))
+  ) 
+
+pima_final = pima_impute %>% dplyr::select(-serum, -skin)
+GGally::ggpairs(pima_final, aes(alpha = 0.05))
+```
+
+## Question 9. 
+**Fit and visualise a decision tree to this data**
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(rpart)
+library(rpart.plot)
+
+tree = rpart(factor(y) ~ ., data = pima_final)
+rpart.plot(tree)
+
+library(partykit)
+# plot(as.party(tree))
+```
+
+## Question 10.
+
+**Predict the outcomes for the two women described earlier using your estimated tree**
+
+```{r, echo = FALSE}
+new_data = data.frame(age = c(35,35),
+                      npreg = c(2,2),
+                      bmi = c(30,40),
+                      bp = c(72,72),
+                      glu = c(122,122),
+                      ped = c(0.5,0.5))
+
+predict(tree, new_data, type = "class")
+```
+
+
+## Question 11.
+
+**Evaluate the in-sample performance using a confusion matrix**
+
+```{r, message = FALSE, warning = FALSE, echo = FALSE}
+library(caret)
+truth = as.factor(pima_final$y)
+confusionMatrix(predict(tree, type = "class"), truth)
+```
+
+The in-sample performance of this decision tree has an accuracy of 0.83 as compared to 0.77 from the logistic regression model.
+
+## Question 12.
+
+**Evaluate out of sample performance using 5 fold cross validation**
+
+```{r, echo = FALSE}
+tc = trainControl(method = "cv", number = 5)
+train(factor(y) ~ ., data = pima_final, method = "rpart", trControl = tc)
+```
+
+The out of sample performance gives an accuracy of 0.75 with a complexity parameter of 0.017. This is a little worse than the logistic regression model's of 0.77, this is due to the decision trees over fitting.
+
+## Question 13.
+
+**Fit a random forest and assess out of bag performance**
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(randomForest)
+set.seed(15)
+rf = randomForest(factor(y) ~ ., data = pima_final)
+rf
+```
+
+The out of bag error rate is $23.57\%$ therefore, the out of bag performance is $1-23.57=76.43\%$ which is a little better than the decision tree and close to the logistic regression model.
+

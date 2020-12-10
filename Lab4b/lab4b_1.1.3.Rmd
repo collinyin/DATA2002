@@ -1,0 +1,74 @@
+---
+title: "lab4b_1.1.3"
+output: html_document
+---
+
+# K Nearest Neighbours
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(tidyverse)
+pima = readr::read_csv("https://raw.githubusercontent.com/DATA2002/data/master/pima.csv")
+
+pima_clean = pima %>% 
+  dplyr::mutate(
+    dplyr::across(c(bmi, bp, glu, serum, skin),
+            .fns = ~ dplyr::na_if(., 0))
+  )
+
+pima_red = pima_clean %>% drop_na()
+
+pima_impute = pima %>% 
+  mutate(
+    across(c(bmi, bp, glu, serum, skin),
+            .fns = ~ ifelse(. == 0, mean(., na.rm= TRUE), .))
+  ) 
+
+pima_final = pima_impute %>% dplyr::select(-serum, -skin)
+GGally::ggpairs(pima_final, aes(alpha = 0.05))
+```
+
+## Question 14. 
+
+**To do out of sample without using the caret package**
+
+- The inner most for loop states the 5-fold cross validation using a k value.
+- The second level iteratively goes through a range of k values.
+- Lastly, the top level, runs it many times because sampling with different seeds give different results, so we run this multiple times to get a consistent accuracy for each k.
+- Ceebs doing this because I have no time but yeah this should be the method.
+
+**Perform k-nearest neighbours on the data with $k = 5$.**
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(class)
+pima_scaled = pima %>% mutate(y = factor(y)) %>% mutate(across(where(is.numeric),
+                                                               .fns = scale))
+X = pima_scaled %>% select(-y) %>% scale()
+y = pima_scaled %>% select(y) %>% pull()
+n = length(y)
+knn_model = knn(train = X, test = X, cl = y, k = 5)
+```
+
+**How does this perform in-sample?**
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+library(caret)
+# In sample performance
+confusionMatrix(knn_model, y)
+```
+
+The in-sample performance gives an accuracy of 0.83.
+
+**How does this perform out of sample?**
+
+```{r, echo = FALSE, message = FALSE, warning = FALSE}
+set.seed(1)
+# Out of sample performance using cross validation
+tc = trainControl(method = "repeatedcv", number = 5, repeats = 10)
+knn_fit = train(factor(y) ~ ., data = pima_final, method = "knn", trControl = tc)
+knn_fit
+```
+
+The best k value was 9 which gave an accuracy of 0.745 which is quite a bit lower than the in sample performance of 0.83.
+
+
+

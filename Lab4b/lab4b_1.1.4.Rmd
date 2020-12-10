@@ -1,0 +1,72 @@
+---
+title: "lab4b_1.1.4"
+output: html_document
+---
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+library(caret)
+library(class)
+library(tidyverse)
+pima = readr::read_csv("https://raw.githubusercontent.com/DATA2002/data/master/pima.csv")
+
+pima_clean = pima %>% 
+  dplyr::mutate(
+    dplyr::across(c(bmi, bp, glu, serum, skin),
+            .fns = ~ dplyr::na_if(., 0))
+  )
+
+pima_red = pima_clean %>% drop_na()
+
+pima_impute = pima %>% 
+  mutate(
+    across(c(bmi, bp, glu, serum, skin),
+            .fns = ~ ifelse(. == 0, mean(., na.rm= TRUE), .))
+  ) 
+
+pima_final = pima_impute %>% dplyr::select(-serum, -skin)
+
+# making them all on a near binary scale I think??
+pima_scaled = pima %>% mutate(y = factor(y)) %>% mutate(across(where(is.numeric),
+                                                               .fns = scale))
+```
+
+## Question 17.
+
+**Compare the out of sample accuracies for all the different methods using 5 fold CV with 10 repeats**
+
+```{r, echo = FALSE, warning = FALSE, message = FALSE}
+tc = trainControl(method = "repeatedcv", number = 5, repeats = 10)
+
+# glm (logistic regression)
+glm_fit = train(y ~ ., data = pima_scaled, method = "glm", family = "binomial", trControl = tc)
+glm_acc = glm_fit$results$Accuracy
+
+# decision tree
+dec_tree = train(y ~ ., data = pima_scaled, method = "rpart", trControl = tc)
+dec_tree_acc = dec_tree$results$Accuracy
+
+# random forest
+rf = train(y ~ ., data = pima_scaled, method = "rf", trControl = tc)
+rf_acc = rf$results$Accuracy
+
+## KNN
+knn_model = train(y ~ ., data = pima_scaled, method = "knn", trControl = tc)
+knn_acc = knn_model$results$Accuracy
+
+results = resamples(list(knn = knn_model, tree = dec_tree, forest = rf, logistic = glm_fit))
+ggplot(results) + labs(y = "Accuracy")
+
+```
+
+## Question 18.
+
+**Which model do you prefer?**
+
+The logistic regression model definitely performs the best, followed by a close second which is the random forest. Therefore, the model I would prefer is the logistic regression model as it performs the best and is easy to understand.
+
+## Question 19.
+
+**Are our results generalisable to other populations?**
+
+No we cannot generalise because the sample we have analysed has been picked out are specifically 21 year old females of the Pima Indian heritage. Therefore, the assumption of independence is not valid hence these models cannot be generalised for all people. If we desired a generalised model we would need to ensure that this assumption of independence and broadness holds.
+
